@@ -72,7 +72,7 @@ docker/.env:
 .PHONY: app-init
 app-init: docker-init
 	docker exec -it -w ${COMPOSE_WORKING_DIR} $(COMPOSE_PROJECT_NAME)_app /bin/bash -c 'composer install --no-plugins --no-scripts' && \
-    docker exec -it -w ${COMPOSE_WORKING_DIR} $(COMPOSE_PROJECT_NAME)_app /bin/bash -c 'php bin/console cache:clear' && \
+    docker exec -it -w ${COMPOSE_WORKING_DIR} $(COMPOSE_PROJECT_NAME)_app /bin/bash -c 'composer dump-autoload' && \
     docker exec -it -w ${COMPOSE_WORKING_DIR} $(COMPOSE_PROJECT_NAME)_app /bin/bash -c 'php bin/console doctrine:migrations:migrate -n' && \
     docker exec -it -w ${COMPOSE_WORKING_DIR} $(COMPOSE_PROJECT_NAME)_app /bin/bash -c 'php bin/console doctrine:fixtures:load -n'
 
