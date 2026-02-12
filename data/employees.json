@@ -1,0 +1,52 @@
+[
+  {
+    "employeeId": 1,
+    "skillLevel": 1,
+    "hourlyRate": 100
+  },
+  {
+    "employeeId": 2,
+    "skillLevel": 2,
+    "hourlyRate": 400
+  },
+  {
+    "employeeId": 3,
+    "skillLevel": 2,
+    "hourlyRate": 350
+  },
+  {
+    "employeeId": 4,
+    "skillLevel": 3,
+    "hourlyRate": 300
+  },
+  {
+    "employeeId": 5,
+    "skillLevel": 1,
+    "hourlyRate": 200
+  },
+  {
+    "employeeId": 6,
+    "skillLevel": 1,
+    "hourlyRate": 150
+  },
+  {
+    "employeeId": 7,
+    "skillLevel": 3,
+    "hourlyRate": 700
+  },
+  {
+    "employeeId": 8,
+    "skillLevel": 1,
+    "hourlyRate": 80
+  },
+  {
+    "employeeId": 9,
+    "skillLevel": 2,
+    "hourlyRate": 500
+  },
+  {
+    "employeeId": 10,
+    "skillLevel": 1,
+    "hourlyRate": 120
+  }
+]
