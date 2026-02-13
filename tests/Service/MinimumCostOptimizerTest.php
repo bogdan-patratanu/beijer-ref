@@ -92,9 +92,10 @@ class MinimumCostOptimizerTest extends TestCase
 
     /**
      * testWidelyVaryingHourlyRates
-     * Purpose: Tests optimization with large differences in hourly rates.
-     * How it works: Three employees with rates 50, 1000, 10, all with skill 1. Three tasks requiring skill 1 with durations 5, 3, 2 hours. All tasks should be assigned to the cheapest employee (rate 10), total cost 10 * (5+3+2) = 100.
-     * Assertions: Feasibility, total cost 100, all assignments to employee 3.
+     * Purpose: Tests optimization with large differences in hourly rates and idle-first strategy.
+     * How it works: Three employees with rates 50, 1000, 10, all with skill 1. Three tasks requiring skill 1 with durations 5, 3, 2 hours.
+     *   Idle-first: task1→emp3(10), task2→emp1(50), task3→emp2(1000). Total cost = 10*5 + 50*3 + 1000*2 = 2200.
+     * Assertions: Feasibility, total cost 2200, each employee gets one task.
      */
     public function testWidelyVaryingHourlyRates(): void
     {
@@ -113,12 +114,13 @@ class MinimumCostOptimizerTest extends TestCase
         $result = $this->optimizer->optimize($employees, $tasks);
 
         $this->assertTrue($result->isFeasible());
-        // All tasks assigned to cheapest employee (id=3, rate=10): 10*(5+3+2) = 100.
-        $this->assertEquals(100, $result->getTotalCost());
-        
-        foreach ($result->getAssignments() as $assignment) {
-            $this->assertEquals(3, $assignment['employeeId']);
-        }
+        // Idle-first: emp3(10*5=50), emp1(50*3=150), emp2(1000*2=2000) = 2200.
+        $this->assertEquals(2200, $result->getTotalCost());
+
+        $assignments = $result->getAssignments();
+        $this->assertEquals(3, $assignments[0]['employeeId']); // cheapest idle
+        $this->assertEquals(1, $assignments[1]['employeeId']); // next cheapest idle
+        $this->assertEquals(2, $assignments[2]['employeeId']); // last idle
     }
 
     /**
@@ -172,9 +174,11 @@ class MinimumCostOptimizerTest extends TestCase
 
     /**
      * testMultipleEmployeesSequentialExecution
-     * Purpose: Tests assignment behavior when multiple employees are available.
-     * How it works: Two employees with rates 100 and 200, three tasks of 2, 3, 1 hours. Since cost minimization, all tasks go to cheaper employee (100).
-     * Assertions: Feasibility, employee summary shows one employee with 6 total hours.
+     * Purpose: Tests assignment behavior with idle-first strategy.
+     * How it works: Two employees with rates 100 and 200, three tasks of 2, 3, 1 hours.
+     *   Idle-first: task1→emp1(100), task2→emp2(200), task3→emp1(100, cheapest busy fallback).
+     *   Total cost = 100*2 + 200*3 + 100*1 = 900. Both employees used.
+     * Assertions: Feasibility, both employees in summary, correct hours.
      */
     public function testMultipleEmployeesSequentialExecution(): void
     {
@@ -192,11 +196,19 @@ class MinimumCostOptimizerTest extends TestCase
         $result = $this->optimizer->optimize($employees, $tasks);
 
         $this->assertTrue($result->isFeasible());
-        
+
         $employeeSummary = $result->getEmployeeSummary();
-        $this->assertCount(1, $employeeSummary);
-        $this->assertEquals(1, $employeeSummary[0]['employeeId']);
-        $this->assertEquals(6.0, $employeeSummary[0]['totalAssignedHours']);
+        $this->assertCount(2, $employeeSummary);
+
+        // Employee 1: tasks 1 (2h) + 3 (1h) = 3h
+        $emp1 = array_values(array_filter($employeeSummary, fn($s) => $s['employeeId'] === 1));
+        $this->assertCount(1, $emp1);
+        $this->assertEquals(3.0, $emp1[0]['totalAssignedHours']);
+
+        // Employee 2: task 2 (3h)
+        $emp2 = array_values(array_filter($employeeSummary, fn($s) => $s['employeeId'] === 2));
+        $this->assertCount(1, $emp2);
+        $this->assertEquals(3.0, $emp2[0]['totalAssignedHours']);
     }
 
     /**

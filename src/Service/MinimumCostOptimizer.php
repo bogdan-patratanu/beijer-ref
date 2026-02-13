@@ -6,9 +6,12 @@
  * Functions defined in this file:
  * - getName(): Returns the optimizer variant name.
  * - optimize(): Main entry point — validates feasibility, then greedily assigns
- *   each task to the cheapest eligible employee (unlimited hours per employee).
+ *   each task to an idle eligible employee (cheapest among idle), falling back
+ *   to the cheapest eligible employee when all candidates are already busy.
  * - buildEligibleBySkill(): Groups employees by the minimum skill level they can
  *   serve, pre-sorted by hourly rate ascending (cheapest first). Computed once.
+ * - selectEmployee(): Picks the cheapest idle employee from candidates; if all
+ *   candidates are busy, falls back to the cheapest one overall.
  * - checkFeasibility(): Verifies every task has at least one eligible employee.
  * - buildResult(): Assembles the OptimizationResult from assignments and workloads.
  */
@@ -28,13 +31,14 @@ class MinimumCostOptimizer implements OptimizerInterface
     }
 
     /**
-     * Assign every task to the cheapest eligible employee.
+     * Assign every task to an eligible employee, preferring idle workers.
      *
      * Strategy:
      *  1. Pre-compute eligible employees per skill level, sorted by hourly rate.
      *  2. Check feasibility (skill coverage).
-     *  3. Greedily assign each task to the cheapest eligible employee.
-     *     An employee may receive multiple tasks executed sequentially.
+     *  3. For each task, among eligible employees:
+     *     a. Prefer an idle employee (zero workload), cheapest among idle.
+     *     b. If all eligible employees are busy, fall back to the cheapest one.
      *
      * @param Employee[] $employees
      * @param Task[]     $tasks
@@ -64,8 +68,8 @@ class MinimumCostOptimizer implements OptimizerInterface
             $skillNeeded = $task->getSkillLevel();
             $candidates = $eligibleBySkill[$skillNeeded]; // already sorted by rate ASC
 
-            // Cheapest eligible employee is always the first candidate.
-            $selected = $candidates[0];
+            // Prefer an idle employee (cheapest among idle); fall back to cheapest overall.
+            $selected = $this->selectEmployee($candidates, $employeeWorkload);
 
             $startTime = $employeeWorkload[$selected->getEmployeeId()];
             $assignments[] = new Assignment($task, $selected, $startTime);
@@ -73,6 +77,28 @@ class MinimumCostOptimizer implements OptimizerInterface
         }
 
         return $this->buildResult($assignments, $employeeWorkload);
+    }
+
+    /**
+     * Select the best employee from candidates: cheapest idle first, cheapest overall as fallback.
+     *
+     * Candidates are already sorted by hourly rate ascending.
+     * An employee is considered idle when their current workload is zero.
+     *
+     * @param Employee[]         $candidates       Eligible employees sorted by rate ASC.
+     * @param array<int, float>  $employeeWorkload Current workload keyed by employeeId.
+     */
+    private function selectEmployee(array $candidates, array $employeeWorkload): Employee
+    {
+        // First pass: find the cheapest idle employee (zero workload).
+        foreach ($candidates as $candidate) {
+            if ($employeeWorkload[$candidate->getEmployeeId()] === 0.0) {
+                return $candidate;
+            }
+        }
+
+        // All candidates are busy — fall back to cheapest overall (first in sorted list).
+        return $candidates[0];
     }
 
     /**
