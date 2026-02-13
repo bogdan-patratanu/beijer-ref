@@ -16,6 +16,12 @@ class MinimumMakespanOptimizerTest extends TestCase
         $this->optimizer = new MinimumMakespanOptimizer();
     }
 
+    /**
+     * testBasicOptimization
+     * Purpose: Tests basic functionality of the makespan optimizer.
+     * How it works: Two employees with same skill, rates 100/200. Two tasks of 4 hours each. Tasks distributed to minimize makespan (each employee gets one task, makespan 4).
+     * Assertions: Feasibility, 2 assignments, makespan 4.0.
+     */
     public function testBasicOptimization(): void
     {
         $employees = [
@@ -35,6 +41,12 @@ class MinimumMakespanOptimizerTest extends TestCase
         $this->assertEquals(4.0, $result->getMakespan());
     }
 
+    /**
+     * testInfeasibleNoEligibleEmployee
+     * Purpose: Tests infeasible assignments due to skill mismatch.
+     * How it works: One employee skill 1, tasks requiring skill 1 and 3.
+     * Assertions: Infeasible, reason 'no eligible employees'.
+     */
     public function testInfeasibleNoEligibleEmployee(): void
     {
         $employees = [
@@ -52,6 +64,12 @@ class MinimumMakespanOptimizerTest extends TestCase
         $this->assertStringContainsString('no eligible employees', $result->getInfeasibilityReason());
     }
 
+    /**
+     * testBalancedWorkloadDistribution
+     * Purpose: Tests distributing tasks to balance workload and minimize makespan.
+     * How it works: Three employees, tasks of 6, 3, 3 hours. Should distribute to minimize max load.
+     * Assertions: Feasibility, makespan 6.0, all three employees used.
+     */
     public function testBalancedWorkloadDistribution(): void
     {
         $employees = [
@@ -75,6 +93,12 @@ class MinimumMakespanOptimizerTest extends TestCase
         $this->assertCount(3, $summary);
     }
 
+    /**
+     * testLongestTasksFirst
+     * Purpose: Tests that longer tasks are assigned first in the optimization.
+     * How it works: Two employees, tasks of 1, 10, 2 hours. Longest task (10) assigned first.
+     * Assertions: Feasibility, makespan <= 10.0.
+     */
     public function testLongestTasksFirst(): void
     {
         $employees = [
@@ -94,6 +118,12 @@ class MinimumMakespanOptimizerTest extends TestCase
         $this->assertLessThanOrEqual(10.0, $result->getMakespan());
     }
 
+    /**
+     * testHighlySkewedTaskDurations
+     * Purpose: Tests handling of highly varying task durations.
+     * How it works: Two employees, tasks of 1, 100, 1 hours. The 100-hour task will dominate makespan.
+     * Assertions: Feasibility, makespan 100.0.
+     */
     public function testHighlySkewedTaskDurations(): void
     {
         $employees = [
@@ -113,6 +143,12 @@ class MinimumMakespanOptimizerTest extends TestCase
         $this->assertEquals(100.0, $result->getMakespan());
     }
 
+    /**
+     * testHighWorkloadSingleEmployee
+     * Purpose: Tests high workload on single employee.
+     * How it works: One employee, two 5-hour tasks.
+     * Assertions: Feasibility, makespan 10.0.
+     */
     public function testHighWorkloadSingleEmployee(): void
     {
         $employees = [
@@ -130,6 +166,12 @@ class MinimumMakespanOptimizerTest extends TestCase
         $this->assertEquals(10.0, $result->getMakespan());
     }
 
+    /**
+     * testLargeScalePerformance
+     * Purpose: Tests performance with large scale data.
+     * How it works: 30 employees, 200 tasks, random parameters. Measures execution time.
+     * Assertions: Feasibility, 200 assignments, execution time < 1 second.
+     */
     public function testLargeScalePerformance(): void
     {
         $employees = [];
@@ -151,12 +193,24 @@ class MinimumMakespanOptimizerTest extends TestCase
         $this->assertLessThan(1.0, $executionTime);
     }
 
+    /**
+     * testEmptyEmployeesList
+     * Purpose: Tests with no employees.
+     * How it works: Empty employees, one task.
+     * Assertions: Infeasible.
+     */
     public function testEmptyEmployeesList(): void
     {
         $result = $this->optimizer->optimize([], [new Task(1, 1, 1)]);
         $this->assertFalse($result->isFeasible());
     }
 
+    /**
+     * testEmptyTasksList
+     * Purpose: Tests with no tasks.
+     * How it works: One employee, no tasks.
+     * Assertions: Feasible, 0 assignments, makespan 0.0.
+     */
     public function testEmptyTasksList(): void
     {
         $result = $this->optimizer->optimize([new Employee(1, 1, 100)], []);
@@ -165,6 +219,12 @@ class MinimumMakespanOptimizerTest extends TestCase
         $this->assertEquals(0.0, $result->getMakespan());
     }
 
+    /**
+     * testSkillLevelPrioritization
+     * Purpose: Tests prioritizing higher skill level employees.
+     * How it works: Employees with skills 3,2,1 all same rate. Two 5-hour tasks. Higher skill employees prioritized.
+     * Assertions: Feasibility, makespan 5.0.
+     */
     public function testSkillLevelPrioritization(): void
     {
         $employees = [
@@ -184,6 +244,12 @@ class MinimumMakespanOptimizerTest extends TestCase
         $this->assertEquals(5.0, $result->getMakespan());
     }
 
+    /**
+     * testMixedSkillLevels
+     * Purpose: Tests assigning tasks based on required skill levels.
+     * How it works: Employees skills 1,2,3. Tasks requiring skills 1,2,3 respectively.
+     * Assertions: Feasibility, 3 assignments, makespan 2.0.
+     */
     public function testMixedSkillLevels(): void
     {
         $employees = [
@@ -205,6 +271,12 @@ class MinimumMakespanOptimizerTest extends TestCase
         $this->assertEquals(2.0, $result->getMakespan());
     }
 
+    /**
+     * testDeterministicOutput
+     * Purpose: Tests that optimization results are deterministic.
+     * How it works: Runs optimization twice with same inputs, compares results.
+     * Assertions: Total cost, makespan, and assignment count are identical between runs.
+     */
     public function testDeterministicOutput(): void
     {
         $employees = [
